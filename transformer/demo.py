@@ -17,7 +17,8 @@ def data_gen(V, batch, nbatches):
         data[:, 0] = 1
         src = Variable(data, requires_grad=False)
         tgt = Variable(data, requires_grad=False)
-        yield Batch(src, tgt, 0)
+        d = Batch(src, tgt, 0)
+        yield d
 
 
 if __name__ == '__main__':
@@ -29,4 +30,4 @@ if __name__ == '__main__':
         model.train()
         run_epoch(data_gen(V, 30, 20), model, SimpleLossCompute(model.generator, criterion, model_opt))
         model.eval()
-        print(run_epoch(data_gen(V, 30, 5), model, SimpleLossCompute(model.generator, criterion, None)))
+        print(run_epoch(data_gen(V, 30, 5), model, SimpleLossCompute(model.generator, criterion, None)).item())

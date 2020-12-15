@@ -26,14 +26,14 @@ def run_epoch(data_iter, model, loss_compute):
     total_loss = 0
     tokens = 0
     for i, batch in enumerate(data_iter):
-        out = model.forward(batch.src, batch.tgt, batch.src_mask, batch.trg_mask)
+        out = model.forward(batch.src, batch.trg, batch.src_mask, batch.trg_mask)
         loss = loss_compute(out, batch.trg_y, batch.ntokens)
         total_loss += loss
         total_tokens += batch.ntokens
         tokens += batch.ntokens
         if i % 50 == 1:
             elapsed = time.time() - start
-            logger.info(f"Epoch step: {i} Loss: {loss / batch.ntokens} Tokens per Sec: {tokens / elapsed}")
+            print(f"Epoch step: {i} Loss: {loss / batch.ntokens} Tokens per Sec: {tokens / elapsed}")
             start = time.time()
             tokens = 0
     return total_loss / total_tokens
@@ -114,14 +114,13 @@ class SimpleLossCompute:
         if self.opt is not None:
             self.opt.step()
             self.opt.optimizer.zero_grad()
-        return loss.data[0] * norm
+        return loss.data.item() * norm
 
 
 class Batch:
     def __init__(self, src, trg=None, pad=0):
         self.src = src
         self.src_mask = (src != pad).unsqueeze(-2)
-        self.tgt = None
         if trg is not None:
             self.trg = trg[:, :-1]
             self.trg_y = trg[:, 1:]
