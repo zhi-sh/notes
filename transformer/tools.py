@@ -10,7 +10,6 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 
-logger = logging.getLogger(__name__)
 global max_src_in_batch, max_tgt_in_batch
 
 
@@ -39,7 +38,7 @@ def run_epoch(data_iter, model, loss_compute):
     return total_loss / total_tokens
 
 
-def batch_size_fn(new, count, sofar):
+def batch_size_fn(new, count):
     global max_src_in_batch, max_tgt_in_batch
     if count == 1:
         max_src_in_batch = 0
