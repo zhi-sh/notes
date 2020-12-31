@@ -20,13 +20,36 @@ class Trainer:
 
     def fit(self, model):
         model.to(self.device)
+        optimizer, scheduler = self._get_optimizer(model)
         for epoch in range(self.conf.epochs):
-            self.train_one_epoch(model)
-            self.validation(model)
+            train_loss = self.train_one_epoch(model, optimizer, scheduler)
+            valid_loss, valid_acc = self.validation(model)
 
-    def train_one_epoch(self, model):
+    def train_one_epoch(self, model, optimizer=None, scheduler=None):
         model.train()
-        pass
+
+        if optimizer is None:
+            optimizer, scheduler = self._get_optimizer(model)
+
+        total_loss = 0
+        for step, batch in enumerate(self.train_dataloader):
+            batch = tuple(t.to(self.device) for t in batch)
+            batch = {
+                'input_ids': batch[0],
+                'attention_mask': batch[1],
+                'labels': batch[2]
+            }
+            model.zero_grad()
+            outputs = model(batch)
+            loss = outputs[0]
+            total_loss += loss.item()
+            if hasattr(self.conf, 'max_grad_norm') and self.conf.max_grad_norm:
+                torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=self.conf.max_grad_norm)
+            optimizer.step()
+            scheduler.step()
+
+        train_loss = total_loss / len(self.train_dataloader)
+        return train_loss
 
     def validation(self, model):
         model.eval()
