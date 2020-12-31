@@ -32,8 +32,6 @@ class Trainer:
         model.eval()
         pass
 
-    def validation(self):
-
     def _dataloader(self, fpath, seed=2020):
         r'''在训练阶段使用RandomSampler, 在测试阶段使用SequentialSampler'''
         dset = CustomData(fpath, self.tokenizer)
