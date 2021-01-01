@@ -5,6 +5,7 @@
 # ------------------------------------------------------------------------------
 import torch
 from sklearn.model_selection import train_test_split
+from seqeval.metrics import accuracy_score, f1_score
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from transformers import AdamW, BertTokenizer, get_linear_schedule_with_warmup
 
@@ -23,7 +24,10 @@ class Trainer:
         optimizer, scheduler = self._get_optimizer(model)
         for epoch in range(self.conf.epochs):
             train_loss = self.train_one_epoch(model, optimizer, scheduler)
-            valid_loss, valid_acc = self.validation(model)
+            print(f"Epoch: {epoch}/{self.conf.epochs}, train loss: {train_loss}")
+
+            valid_loss, valid_acc, valid_f1 = self.validation(model)
+            print(f"Epoch: {epoch}/{self.conf.epochs}, valid loss: {valid_loss}, acc: {valid_acc}, f1: {valid_f1}")
 
     def train_one_epoch(self, model, optimizer=None, scheduler=None):
         model.train()
@@ -53,11 +57,35 @@ class Trainer:
 
     def validation(self, model):
         model.eval()
-        pass
+        valid_loss = 0
+        predictions, true_labels = [], []
+        for batch in self.valid_dataloader:
+            batch = tuple(t.to(self.device) for t in batch)
+            batch = {
+                'input_ids': batch[0],
+                'attention_mask': batch[1],
+                'labels': batch[2]
+            }
+            with torch.no_grad():
+                outputs = model(batch)
+            logits = outputs[1].detect().cpu().numpy()
+            label_ids = batch['labels'].to('cpu').numpy()
+            valid_loss += outputs[0].mean().item()
+            predictions.extend([list(p) for p in np.argmax(logits, axis=2)])
+            true_labels.extend(label_ids)
+
+        avg_valid_loss = valid_loss / len(self.val_dataloader)
+
+        pred_tags = [self.tag_values[p_i] for p, l in zip(predictions, true_labels) for p_i, l_i in zip(p, l) if self.tag_values[l_i] != 'PAD']
+        valid_tags = [self.tag_values[l_i] for l in true_labels for l_i in l if self.tag_values[l_i] != 'PAD']
+        valid_accuracy = accuracy_score(pred_tags, valid_tags)
+        valid_f1 = f1_score(pred_tags, valid_tags)
+        return avg_valid_loss, valid_accuracy, valid_f1
 
     def _dataloader(self, fpath, seed=2020):
         r'''在训练阶段使用RandomSampler, 在测试阶段使用SequentialSampler'''
         dset = CustomData(fpath, self.tokenizer)
+        self.tag_values = dset.tag_values
         input_ids, attention_masks, labels = dset.get_data()
         train_inputs, valid_inputs, train_tags, valid_tags = train_test_split(input_ids, labels, random_state=seed, test_size=0.1)
         train_masks, valid_masks, _, _ = train_test_split(attention_masks, input_ids, random_state=seed, test_size=0.1)
