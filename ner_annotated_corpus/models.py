@@ -12,7 +12,7 @@ class Model(nn.Module):
     def __init__(self, conf):
         super(Model, self).__init__()
         self.conf = conf
-        self.bert = BertForTokenClassification.from_pretrained(conf.bert_model, conf.num_labels, output_attentions=False, output_hidden_states=False)
+        self.bert = BertForTokenClassification.from_pretrained(conf.bert_model, num_labels=conf.num_labels)
 
     def forward(self, batch):
         input_ids = batch.get('input_ids')
@@ -21,3 +21,9 @@ class Model(nn.Module):
         labels = batch.get('labels', None)
         outputs = self.bert(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, labels=labels)
         return outputs
+
+
+if __name__ == '__main__':
+    from settings import config
+
+    print(list(Model(config).bert.classifier.named_parameters()))

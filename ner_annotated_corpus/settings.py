@@ -3,6 +3,9 @@
 # @Author   :zhi.liu
 
 # ------------------------------------------------------------------------------
+import torch
+
+
 class Config(dict):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -21,8 +24,11 @@ config = Config(
 
     # 模型参数
     bert_model=r'/Users/liuzhi/models/torch/bert-base-uncased',
+    device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+    num_labels=18,  # Tag类别，通过datasets类可获取
 
     # 训练参数
+    epochs=1,
     bs=32,
     lr=3e-5,
     eps=1e-8,

@@ -84,4 +84,5 @@ if __name__ == '__main__':
     tokenizer = BertTokenizer.from_pretrained(config.bert_model)
     dset = CustomData(f"{config.data_path}/ner_dataset.csv", tokenizer)
     input_ids, attention_mask, labels = dset.get_data()
+    print(f"number of classes: {len(dset.tag2idx)}")
     print(len(input_ids), len(attention_mask), len(labels))

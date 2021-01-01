@@ -4,12 +4,15 @@
 
 # ------------------------------------------------------------------------------
 import torch
+import numpy as np
 from sklearn.model_selection import train_test_split
 from seqeval.metrics import accuracy_score, f1_score
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from transformers import AdamW, BertTokenizer, get_linear_schedule_with_warmup
 
+from settings import config
 from datasets import CustomData
+from models import Model
 
 
 class Trainer:
@@ -17,6 +20,8 @@ class Trainer:
         self.conf = conf
         self.device = conf.device
         self.tokenizer = BertTokenizer.from_pretrained(conf.bert_model)
+
+        # dataloader 加载数据集，同时配置模型参数
         self._dataloader(f"{conf.data_path}/ner_dataset.csv")
 
     def fit(self, model):
@@ -113,7 +118,7 @@ class Trainer:
                 }
             ]
         else:
-            param_optimizer = list(model.classifier.named_parameters())
+            param_optimizer = list(model.bert.classifier.named_parameters())  # 依据不同的模型而不同
             optimizer_grouped_parameters = [{'params': [p for n, p in param_optimizer]}]
 
         optimizer = AdamW(optimizer_grouped_parameters, lr=self.conf.lr, eps=self.conf.eps)
@@ -122,3 +127,9 @@ class Trainer:
         scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
 
         return optimizer, scheduler
+
+
+if __name__ == '__main__':
+    trainer = Trainer(config)
+    model = Model(config)
+    trainer.fit(model)
